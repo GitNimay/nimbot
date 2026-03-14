@@ -1,0 +1,19 @@
+{
+  "framework": "nextjs",
+  "routes": [
+    {
+      "src": "/api/telegram/webhook",
+      "headers": {
+        "Access-Control-Allow-Origin": "*"
+      },
+      "continue": true
+    },
+    {
+      "src": "/api/cron/(.*)",
+      "headers": {
+        "Access-Control-Allow-Origin": "*"
+      },
+      "continue": true
+    }
+  ]
+}
