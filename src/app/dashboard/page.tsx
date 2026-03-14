@@ -54,7 +54,17 @@ export default function Dashboard() {
   const [conversationMessages, setConversationMessages] = useState<Message[]>([]);
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
 
-  const { data: groupedTasks, error: tasksError, mutate: mutateTasks } = useSWR<Record<string, Task[]>>('/api/tasks?grouped=true', fetcher, { refreshInterval: 3000 });
+  const { data: groupedTasks, error: tasksError, mutate: mutateTasks } = useSWR<Record<string, Task[]>>('/api/tasks?grouped=true', fetcher, { 
+    refreshInterval: 3000,
+    onSuccess: (data) => {
+      if (data && Object.keys(data).length > 0) {
+        const dates = Object.keys(data).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+        if (dates.length > 0) {
+          setExpandedDates(new Set([dates[0]]));
+        }
+      }
+    }
+  });
 
   const toggleDate = (date: string) => {
     const newSet = new Set(expandedDates);

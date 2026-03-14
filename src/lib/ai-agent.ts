@@ -467,12 +467,9 @@ async function callGroq5(messages: any[]): Promise<string> {
 export async function processWithAI(userMessage: string, conversationId: string, chatId: number): Promise<string> {
   let augmentedSystemPrompt = systemPrompt;
   
-  if (isAskingAboutPast(userMessage)) {
-    console.log('[AI] User asking about past, fetching context from database...');
-    const pastContext = await getPastConversationContext(chatId, userMessage);
-    if (pastContext) {
-      augmentedSystemPrompt = systemPrompt + pastContext;
-    }
+  const pastContext = await getPastConversationContext(chatId, userMessage);
+  if (pastContext) {
+    augmentedSystemPrompt = systemPrompt + pastContext;
   }
 
   const messages = [

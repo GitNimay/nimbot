@@ -144,16 +144,16 @@ export async function getAllTasksGroupedByDate() {
   const allTasks = await db
     .select()
     .from(tasks)
-    .orderBy(desc(tasks.taskDate), desc(tasks.createdAt));
+    .orderBy(desc(tasks.createdAt));
   
   const grouped: Record<string, typeof allTasks> = {};
   for (const task of allTasks) {
-    if (!task.taskDate) continue;
+    let taskDateVal = task.createdAt ? new Date(task.createdAt) : new Date();
+    if (isNaN(taskDateVal.getTime())) {
+      taskDateVal = new Date();
+    }
     
-    const taskDate = new Date(task.taskDate);
-    if (isNaN(taskDate.getTime())) continue;
-    
-    const dateKey = taskDate.toISOString().split('T')[0];
+    const dateKey = taskDateVal.toISOString().split('T')[0];
     
     if (!grouped[dateKey]) {
       grouped[dateKey] = [];
