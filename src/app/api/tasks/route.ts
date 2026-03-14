@@ -21,7 +21,11 @@ export async function GET(req: NextRequest) {
     }
     
     if (date) {
-      const tasks = await getTasksByDate(new Date(date));
+      const parsedDate = new Date(date);
+      if (isNaN(parsedDate.getTime())) {
+        return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
+      }
+      const tasks = await getTasksByDate(parsedDate);
       return NextResponse.json(tasks);
     }
     
