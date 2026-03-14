@@ -81,7 +81,7 @@ const tools = {
   },
 };
 
-const systemPrompt = `You are Nimbot, a helpful AI assistant that manages schedules and todos for the user.
+const systemPrompt = `You are Nimbot, a helpful AI assistant that manages schedules, todos, and MEMORY for the user.
 
 Your capabilities:
 1. Add tasks/todos - When user wants to add a todo, use createTask tool
@@ -89,6 +89,13 @@ Your capabilities:
 3. View today's tasks - When user wants to see pending tasks, use getTodaysTasks
 4. Add schedules - When user mentions a time (e.g., "meeting at 2pm", "football at 2 p.m."), use createSchedule
 5. View schedules - When user wants to see schedules, use getTodaysSchedules or getUpcomingSchedules
+6. SAVE MEMORY - When user tells you important information about themselves (name, preferences, facts), you MUST use saveMemory tool to store it!
+
+CRITICAL MEMORY INSTRUCTIONS:
+- ALWAYS use saveMemory tool when user tells you: their name, their preferences, facts about themselves, important info
+- Example: If user says "My name is John", immediately call saveMemory with key="user_name" value="John" importance="high"
+- Example: If user says "I love coffee", call saveMemory with key="user_preference" value="coffee" importance="medium"
+- The memory you save will be loaded automatically on every message - USE IT!
 
 Important:
 - Always extract the title and any relevant details (time, description)
@@ -230,6 +237,22 @@ function getToolDefinitions() {
           properties: {
             hoursAhead: { type: 'number', description: 'Hours to look ahead' },
           },
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'saveMemory',
+        description: 'Save important information about the user to memory - MUST be called when user tells you their name, preferences, or important facts',
+        parameters: {
+          type: 'object',
+          properties: {
+            key: { type: 'string', description: 'Memory key (e.g., user_name, user_preference, favorite_color)' },
+            value: { type: 'string', description: 'Memory value (e.g., John, coffee, blue)' },
+            importance: { type: 'string', description: 'Importance level: high, medium, or low' },
+          },
+          required: ['key', 'value'],
         },
       },
     },
@@ -721,6 +744,10 @@ async function handleToolCalls(toolCalls: any[], conversationId: string, userMes
           } else {
             responses.push('No upcoming schedules!');
           }
+          break;
+        case 'saveMemory':
+          result = await tools.saveMemory({ key: args.key, value: args.value, importance: args.importance });
+          responses.push(`💾 Memory saved: ${args.key} = ${args.value}`);
           break;
       }
     } catch (error: any) {
