@@ -664,12 +664,20 @@ async function handleToolCalls(toolCalls: any[], conversationId: string, userMes
           break;
         case 'completeTaskFromText':
           args.conversationId = conversationId;
-          const completed = userMessage.split(',').map(s => s.trim().replace(/^(this|that)\s+/i, '').replace(/\s+done$/i, ''));
-          result = await tools.completeTaskFromText({ completedTitles: completed, conversationId });
-          if (result.completed.length > 0) {
-            responses.push(`✅ Completed: ${result.completed.join(', ')}`);
+          const userLower = userMessage.toLowerCase();
+          const negativeResponses = ['no', 'none', 'nothing', 'not', 'nope', 'did not', "didn't", 'have not', "haven't", 'no task', 'not done', 'not completed'];
+          const isNegative = negativeResponses.some(neg => userLower.includes(neg));
+          
+          if (isNegative) {
+            responses.push('Got it! No tasks marked as completed. Let me know if you complete any tasks later!');
           } else {
-            responses.push('No matching tasks found to complete.');
+            const completed = userMessage.split(',').map(s => s.trim().replace(/^(this|that)\s+/i, '').replace(/\s+done$/i, ''));
+            result = await tools.completeTaskFromText({ completedTitles: completed, conversationId });
+            if (result.completed.length > 0) {
+              responses.push(`✅ Completed: ${result.completed.join(', ')}`);
+            } else {
+              responses.push('No matching tasks found to complete.');
+            }
           }
           break;
         case 'getPendingTasks':

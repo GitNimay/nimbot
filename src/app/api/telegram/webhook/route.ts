@@ -107,6 +107,12 @@ I'll remember everything and remind you!`;
       const lower = text.toLowerCase();
       return COMPLETION_KEYWORDS.some(keyword => lower.includes(keyword));
     };
+    
+    const NEGATIVE_KEYWORDS = ['no', 'none', 'nothing', 'not', 'nope', 'did not', "didn't", 'have not', "haven't", 'no task', 'not done', 'not completed', 'not yet'];
+    const isNegativeResponse = (text: string): boolean => {
+      const lower = text.toLowerCase();
+      return NEGATIVE_KEYWORDS.some(keyword => lower.includes(keyword));
+    };
 
     if (isCompletionMessage(text)) {
       const pendingTasks = await getTodaysTasks();
@@ -119,6 +125,11 @@ I'll remember everything and remind you!`;
 
       const taskList = pending.map((t, i) => `${i + 1}. ${t.title}`).join('\n');
       await sendMessage(chatId, `Which tasks did you complete?\n\n${taskList}\n\nJust reply with the numbers or names!`);
+      return NextResponse.json({ ok: true });
+    }
+    
+    if (isNegativeResponse(text)) {
+      await sendMessage(chatId, "No problem! Let me know when you complete any tasks. You can tell me 'I completed [task name]' or just say 'done' with the task names!");
       return NextResponse.json({ ok: true });
     }
 
