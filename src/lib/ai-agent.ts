@@ -38,11 +38,11 @@ const MODEL_CONFIG = {
   openrouter4: "mistralai/mistral-7b-instruct-v0.2",
   openrouter5: "meta-llama/llama-3.2-3b-instruct",
   gemini: "gemini-2.5-flash",
-  groq: "qwen/qwen-2.5-32b-instruct",
+  groq: "openai/gpt-oss-120b",
   groq2: "llama-3.3-70b-versatile",
-  groq3: "llama-3.1-70b-versatile",
-  groq4: "mixtral-8x7b-32768",
-  groq5: "gemma-7b-it",
+  groq3: "groq/compound",
+  groq4: "qwen/qwen3-32b",
+  groq5: "llama-3.1-8b-instant",
 };
 
 interface AITools {
@@ -659,23 +659,23 @@ User's name: ${userName}`;
   let lastError: Error | null = null;
   let response: string = "";
 
-  console.log("[AI] Trying Groq Llama 3.3 70B...");
+  console.log("[AI] Trying Groq GPT-OSS 120B...");
   try {
     response = await callGroq1(messages);
     return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
-    console.log("[AI] Groq Llama 3.3 failed, trying Groq Llama 3.1 70B...");
+    console.log("[AI] Groq GPT-OSS 120B failed, trying Groq Llama 3.3 70B...");
     await logApiUsage("groq", MODEL_CONFIG.groq, 0, false, error.message, true);
   }
 
-  console.log("[AI] Trying Groq Llama 3.1 70B...");
+  console.log("[AI] Trying Groq Llama 3.3 70B...");
   try {
     response = await callGroq2(messages);
     return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
-    console.log("[AI] Groq Llama 3.1 70B failed, trying Groq Llama 3.1 8B...");
+    console.log("[AI] Groq Llama 3.3 failed, trying Groq Compound...");
     await logApiUsage(
       "groq",
       MODEL_CONFIG.groq2,
@@ -687,13 +687,13 @@ User's name: ${userName}`;
     );
   }
 
-  console.log("[AI] Trying Groq Llama 3.1 8B...");
+  console.log("[AI] Trying Groq Compound...");
   try {
     response = await callGroq3(messages);
     return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
-    console.log("[AI] Groq Llama 3.1 8B failed, trying Groq Mixtral...");
+    console.log("[AI] Groq Compound failed, trying Groq Qwen3 32B...");
     await logApiUsage(
       "groq",
       MODEL_CONFIG.groq3,
@@ -705,13 +705,13 @@ User's name: ${userName}`;
     );
   }
 
-  console.log("[AI] Trying Groq Mixtral 8x7B...");
+  console.log("[AI] Trying Groq Qwen3 32B...");
   try {
     response = await callGroq4(messages);
     return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
-    console.log("[AI] Groq Mixtral failed, trying Groq Gemma...");
+    console.log("[AI] Groq Qwen3 32B failed, trying Groq Llama 3.1 8B...");
     await logApiUsage(
       "groq",
       MODEL_CONFIG.groq4,
@@ -723,13 +723,13 @@ User's name: ${userName}`;
     );
   }
 
-  console.log("[AI] Trying Groq Gemma 7B...");
+  console.log("[AI] Trying Groq Llama 3.1 8B...");
   try {
     response = await callGroq5(messages);
     return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
-    console.log("[AI] Groq Gemma failed, trying DeepSeek...");
+    console.log("[AI] Groq Llama 3.1 8B failed, trying DeepSeek...");
     await logApiUsage(
       "groq",
       MODEL_CONFIG.groq5,
