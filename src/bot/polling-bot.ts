@@ -57,7 +57,7 @@ I'll remember everything and remind you!`;
           ['/new chat', '/start'],
         ],
         resize_keyboard: true,
-      },
+      } as any,
     });
     return;
   }
@@ -74,7 +74,7 @@ I'll remember everything and remind you!`;
           ['/new chat', '/start'],
         ],
         resize_keyboard: true,
-      },
+      } as any,
     });
     return;
   }
@@ -177,7 +177,7 @@ bot.on('callback_query', async (callbackQuery) => {
           ['/new chat', '/start'],
         ],
         resize_keyboard: true,
-      },
+      } as any,
     });
   }
 });
