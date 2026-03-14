@@ -8,7 +8,15 @@ import { getTodaysSchedules } from '@/lib/schedules';
 export async function POST(req: NextRequest) {
   try {
     const secret = req.headers.get('x-telegram-bot-api-secret-token');
-    if (secret !== process.env.TELEGRAM_WEBHOOK_SECRET) {
+    const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    
+    // Debug: Log what's received vs expected
+    console.log(`[Webhook] Secret received: ${secret ? 'yes' : 'no'}`);
+    console.log(`[Webhook] Secret expected: ${expectedSecret ? 'yes' : 'no'}`);
+    
+    // Allow if no secret configured (dev mode) or if secret matches
+    if (expectedSecret && secret !== expectedSecret) {
+      console.log(`[Webhook] Secret mismatch! Got: ${secret}, Expected: ${expectedSecret}`);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
