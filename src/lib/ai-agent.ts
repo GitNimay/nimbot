@@ -145,7 +145,7 @@ async function getPastConversationContext(chatId: number, query: string): Promis
 function getToolDefinitions() {
   return [
     {
-      type: 'function',
+      type: 'function' as const,
       function: {
         name: 'createTask',
         description: 'Create a new task/todo',
@@ -235,7 +235,7 @@ async function callOpenRouter(messages: any[]): Promise<string> {
   const response = await openrouter.chat.completions.create({
     model: MODEL_CONFIG.openrouter,
     messages,
-    tools: getToolDefinitions(),
+    tools: getToolDefinitions() as any,
   });
 
   await logApiUsage('openrouter', MODEL_CONFIG.openrouter, response.usage?.total_tokens || 0, true);
