@@ -71,17 +71,22 @@ export default function Dashboard() {
   const { data: apiUsage, mutate: mutateApiUsage } = useSWR<ApiUsageItem[]>('/api/api-usage', fetcher, { refreshInterval: 5000 });
 
   const allTasks = groupedTasks ? Object.values(groupedTasks).flat() : [];
+  const tasksArray = Array.isArray(allTasks) ? allTasks : [];
+  const schedulesArray = Array.isArray(schedules) ? schedules : [];
+  const conversationsArray = Array.isArray(conversations) ? conversations : [];
+  const apiUsageArray = Array.isArray(apiUsage) ? apiUsage : [];
+  
   const stats = {
-    tasks: allTasks.filter(t => t.status === 'pending').length || 0,
-    schedules: schedules?.filter(s => new Date(s.eventTime) > new Date()).length || 0,
-    sessions: conversations?.length || 0,
-    apiCalls: apiUsage?.length || 0,
+    tasks: tasksArray.filter(t => t.status === 'pending').length || 0,
+    schedules: schedulesArray.filter(s => new Date(s.eventTime) > new Date()).length || 0,
+    sessions: conversationsArray.length || 0,
+    apiCalls: apiUsageArray.length || 0,
   };
 
   const apiStats = {
-    openrouter: apiUsage?.filter(a => a.provider === 'openrouter').length || 0,
-    gemini: apiUsage?.filter(a => a.provider === 'gemini').length || 0,
-    groq: apiUsage?.filter(a => a.provider === 'groq').length || 0,
+    openrouter: apiUsageArray.filter(a => a.provider === 'openrouter').length || 0,
+    gemini: apiUsageArray.filter(a => a.provider === 'gemini').length || 0,
+    groq: apiUsageArray.filter(a => a.provider === 'groq').length || 0,
   };
 
   const handleCreateTask = async () => {
@@ -243,7 +248,7 @@ export default function Dashboard() {
               </div>
             )}
             
-            {groupedTasks && Object.entries(groupedTasks).sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime()).map(([date, dateTasks]) => (
+            {groupedTasks && Object.keys(groupedTasks).length > 0 && Object.entries(groupedTasks).sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime()).map(([date, dateTasks]) => (
               <div key={date} className="date-group">
                 <div className="date-header" onClick={() => toggleDate(date)}>
                   <span className="date-label">
@@ -301,13 +306,13 @@ export default function Dashboard() {
               </button>
             </div>
             <div className="item-list">
-              {schedules?.length === 0 ? (
+              {schedulesArray.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-icon">📅</div>
                   <p>No schedules yet. Add your first event!</p>
                 </div>
               ) : (
-                schedules?.map(schedule => (
+                schedulesArray.map(schedule => (
                   <div key={schedule.id} className="item">
                     <div className="item-content">
                       <div className="item-title">{schedule.title}</div>
@@ -331,13 +336,13 @@ export default function Dashboard() {
               <h2 className="section-title">Chat Sessions</h2>
             </div>
             <div className="item-list">
-              {conversations?.length === 0 ? (
+              {conversationsArray.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-icon">💬</div>
                   <p>No chat sessions yet. Start chatting with your bot!</p>
                 </div>
               ) : (
-                conversations?.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(conv => (
+                conversationsArray.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(conv => (
                   <div 
                     key={conv.id} 
                     className="item clickable"
@@ -367,7 +372,7 @@ export default function Dashboard() {
               <h2 className="section-title">{selectedConversation.sessionName}</h2>
             </div>
             <div className="chat-messages">
-              {conversationMessages.map(msg => (
+              {conversationMessages && conversationMessages.map(msg => (
                 <div key={msg.id} className={`chat-message ${msg.role}`}>
                   <div className="message-content">{msg.content}</div>
                   <div className="message-time">{formatDate(msg.createdAt)}</div>
