@@ -502,7 +502,7 @@ export async function processWithAI(userMessage: string, conversationId: string,
   
   const userName = await getMemory('user_name');
   if (userName) {
-    augmentedSystemPrompt = augmentedSystemPrompt.replace('You are Nimbot', `You are Nimbot (your name is ${userName})`);
+    augmentedSystemPrompt += `\n\nUser's name: ${userName}`;
   }
   
   const pastContext = await getPastConversationContext(chatId, userMessage);
