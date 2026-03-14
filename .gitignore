@@ -48,3 +48,4 @@ aux
 prn
 
 .vercel
+.env*.local

@@ -150,8 +150,7 @@ export async function getAllTasksGroupedByDate() {
   for (const task of allTasks) {
     if (!task.taskDate) continue;
     
-    const taskDateStr = String(task.taskDate);
-    const dateKey = taskDateStr.split('T')[0];
+    const dateKey = task.taskDate.toISOString().split('T')[0];
     
     if (!grouped[dateKey]) {
       grouped[dateKey] = [];
