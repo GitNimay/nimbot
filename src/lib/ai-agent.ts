@@ -7,6 +7,7 @@ import { eq, desc, ilike, or, and, sql } from 'drizzle-orm';
 import { logApiUsage } from './conversation';
 import { createTask, completeTaskFromText, getPendingTasks, getTodaysTasks } from './tasks';
 import { createSchedule, getTodaysSchedules, getUpcomingSchedules } from './schedules';
+import { getFormattedMemory, setMemory, getMemory } from './memory';
 
 const openrouter = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -73,6 +74,10 @@ const tools = {
   getUpcomingSchedules: async (args: { hoursAhead?: number }) => {
     const schedules = await getUpcomingSchedules(args.hoursAhead || 24);
     return { schedules };
+  },
+  saveMemory: async (args: { key: string; value: string; importance?: string }) => {
+    await setMemory(args.key, args.value, (args.importance as 'low' | 'medium' | 'high') || 'medium');
+    return { success: true, message: `Saved: ${args.key} = ${args.value}` };
   },
 };
 
@@ -467,9 +472,14 @@ async function callGroq5(messages: any[]): Promise<string> {
 export async function processWithAI(userMessage: string, conversationId: string, chatId: number): Promise<string> {
   let augmentedSystemPrompt = systemPrompt;
   
+  const agentMemory = await getFormattedMemory();
+  if (agentMemory) {
+    augmentedSystemPrompt = systemPrompt + agentMemory;
+  }
+  
   const pastContext = await getPastConversationContext(chatId, userMessage);
   if (pastContext) {
-    augmentedSystemPrompt = systemPrompt + pastContext;
+    augmentedSystemPrompt = augmentedSystemPrompt + pastContext;
   }
 
   const messages = [

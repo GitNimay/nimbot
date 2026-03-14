@@ -68,8 +68,18 @@ export const taskReminders = pgTable('task_reminders', {
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
 });
 
+export const agentMemory = pgTable('agent_memory', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  memoryKey: varchar('key', { length: 255 }).notNull().unique(),
+  value: text('value').notNull(),
+  importance: varchar('importance', { length: 50 }).default('medium'),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
+});
+
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type Schedule = typeof schedules.$inferSelect;
 export type ApiUsage = typeof apiUsage.$inferSelect;
+export type AgentMemory = typeof agentMemory.$inferSelect;
