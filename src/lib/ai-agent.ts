@@ -109,11 +109,13 @@ const tools = {
     return { schedules };
   },
   saveMemory: async (args: {
+    chatId: number;
     key: string;
     value: string;
     importance?: string;
   }) => {
     await setMemory(
+      args.chatId,
       args.key,
       args.value,
       (args.importance as "low" | "medium" | "high") || "medium",
@@ -177,56 +179,24 @@ function isAskingAboutPast(message: string): boolean {
 
 async function getPastConversationContext(
   chatId: number,
-  query: string,
-): Promise<string> {
-  const searchTerm =
-    query
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((w) => w.length > 3)
-      .slice(0, 1)[0] || "";
+  limit: number = 15,
+): Promise<{role: string, content: string}[]> {
+  const pastMessages = await db
+    .select({
+      content: messages.content,
+      role: messages.role,
+      createdAt: messages.createdAt,
+    })
+    .from(messages)
+    .innerJoin(conversations, eq(messages.conversationId, conversations.id))
+    .where(eq(conversations.telegramChatId, chatId))
+    .orderBy(desc(messages.createdAt))
+    .limit(limit);
 
-  let pastMessages;
-
-  if (searchTerm) {
-    pastMessages = await db
-      .select({
-        content: messages.content,
-        role: messages.role,
-        createdAt: messages.createdAt,
-      })
-      .from(messages)
-      .innerJoin(conversations, eq(messages.conversationId, conversations.id))
-      .where(
-        and(
-          eq(conversations.telegramChatId, chatId),
-          sql`LOWER(${messages.content}) LIKE ${`%${searchTerm}%`}`,
-        ),
-      )
-      .orderBy(desc(messages.createdAt))
-      .limit(15);
-  } else {
-    pastMessages = await db
-      .select({
-        content: messages.content,
-        role: messages.role,
-        createdAt: messages.createdAt,
-      })
-      .from(messages)
-      .innerJoin(conversations, eq(messages.conversationId, conversations.id))
-      .where(eq(conversations.telegramChatId, chatId))
-      .orderBy(desc(messages.createdAt))
-      .limit(15);
-  }
-
-  if (pastMessages.length === 0) return "";
-
-  const context = pastMessages
-    .reverse()
-    .map((m) => `${m.role}: ${m.content}`)
-    .join("\n");
-
-  return `\n\nRelevant past conversation context:\n${context}`;
+  return pastMessages.reverse().map((m) => ({
+    role: m.role as "user" | "assistant" | "system",
+    content: m.content
+  }));
 }
 
 function getToolDefinitions(): any[] {
@@ -667,24 +637,23 @@ export async function processWithAI(
 ): Promise<string> {
   let augmentedSystemPrompt = systemPrompt;
 
-  const agentMemory = await getFormattedMemory();
+  const agentMemory = await getFormattedMemory(chatId);
   if (agentMemory) {
     augmentedSystemPrompt = systemPrompt + agentMemory;
   }
 
-  const userName = await getMemory("user_name");
+  const userName = await getMemory(chatId, "user_name");
   if (userName) {
-    augmentedSystemPrompt += `\n\nUser's name: ${userName}`;
+    augmentedSystemPrompt += `
+
+User's name: ${userName}`;
   }
 
-  const pastContext = await getPastConversationContext(chatId, userMessage);
-  if (pastContext) {
-    augmentedSystemPrompt = augmentedSystemPrompt + pastContext;
-  }
+  const history = await getPastConversationContext(chatId, 15);
 
   const messages = [
     { role: "system", content: augmentedSystemPrompt },
-    { role: "user", content: userMessage },
+    ...history
   ];
 
   let lastError: Error | null = null;
@@ -693,7 +662,7 @@ export async function processWithAI(
   console.log("[AI] Trying Groq Llama 3.3 70B...");
   try {
     response = await callGroq1(messages);
-    return parseAIResponse(response, conversationId, userMessage);
+    return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
     console.log("[AI] Groq Llama 3.3 failed, trying Groq Llama 3.1 70B...");
@@ -703,7 +672,7 @@ export async function processWithAI(
   console.log("[AI] Trying Groq Llama 3.1 70B...");
   try {
     response = await callGroq2(messages);
-    return parseAIResponse(response, conversationId, userMessage);
+    return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
     console.log("[AI] Groq Llama 3.1 70B failed, trying Groq Llama 3.1 8B...");
@@ -721,7 +690,7 @@ export async function processWithAI(
   console.log("[AI] Trying Groq Llama 3.1 8B...");
   try {
     response = await callGroq3(messages);
-    return parseAIResponse(response, conversationId, userMessage);
+    return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
     console.log("[AI] Groq Llama 3.1 8B failed, trying Groq Mixtral...");
@@ -739,7 +708,7 @@ export async function processWithAI(
   console.log("[AI] Trying Groq Mixtral 8x7B...");
   try {
     response = await callGroq4(messages);
-    return parseAIResponse(response, conversationId, userMessage);
+    return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
     console.log("[AI] Groq Mixtral failed, trying Groq Gemma...");
@@ -757,7 +726,7 @@ export async function processWithAI(
   console.log("[AI] Trying Groq Gemma 7B...");
   try {
     response = await callGroq5(messages);
-    return parseAIResponse(response, conversationId, userMessage);
+    return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
     console.log("[AI] Groq Gemma failed, trying DeepSeek...");
@@ -775,7 +744,7 @@ export async function processWithAI(
   console.log("[AI] Trying DeepSeek (OpenRouter Free)...");
   try {
     response = await callOpenRouter(messages);
-    return parseAIResponse(response, conversationId, userMessage);
+    return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
     console.log("[AI] DeepSeek failed, trying Gemini...");
@@ -793,7 +762,7 @@ export async function processWithAI(
   console.log("[AI] Trying Gemini 2.5 Flash...");
   try {
     response = await callGemini(messages);
-    return parseGeminiResponse(response, conversationId, userMessage);
+    return parseGeminiResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
     console.log("[AI] Gemini failed, trying OpenRouter Gemini Flash...");
@@ -811,7 +780,7 @@ export async function processWithAI(
   console.log("[AI] Trying OpenRouter Gemini Flash...");
   try {
     response = await callOpenRouter2(messages);
-    return parseAIResponse(response, conversationId, userMessage);
+    return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
     console.log("[AI] OpenRouter Gemini failed, trying OpenRouter Qwen...");
@@ -829,7 +798,7 @@ export async function processWithAI(
   console.log("[AI] Trying OpenRouter Qwen...");
   try {
     response = await callOpenRouter3(messages);
-    return parseAIResponse(response, conversationId, userMessage);
+    return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
     console.log("[AI] Qwen failed, trying OpenRouter Mistral...");
@@ -847,7 +816,7 @@ export async function processWithAI(
   console.log("[AI] Trying OpenRouter Mistral...");
   try {
     response = await callOpenRouter4(messages);
-    return parseAIResponse(response, conversationId, userMessage);
+    return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
     console.log("[AI] Mistral failed, trying OpenRouter Llama...");
@@ -865,7 +834,7 @@ export async function processWithAI(
   console.log("[AI] Trying OpenRouter Llama...");
   try {
     response = await callOpenRouter5(messages);
-    return parseAIResponse(response, conversationId, userMessage);
+    return parseAIResponse(response, conversationId, userMessage, chatId);
   } catch (error: any) {
     lastError = error;
     console.log("[AI] All providers failed");
@@ -887,16 +856,13 @@ async function parseAIResponse(
   responseStr: string,
   conversationId: string,
   userMessage: string,
+  chatId?: number,
 ): Promise<string> {
   try {
     const response = JSON.parse(responseStr);
 
     if (response.tool_calls) {
-      return await handleToolCalls(
-        response.tool_calls,
-        conversationId,
-        userMessage,
-      );
+      return await handleToolCalls(response.tool_calls, conversationId, userMessage, chatId);
     }
 
     return (
@@ -912,15 +878,12 @@ async function parseGeminiResponse(
   response: string,
   conversationId: string,
   userMessage: string,
+  chatId?: number,
 ): Promise<string> {
   try {
     const parsed = JSON.parse(response);
     if (parsed.functionCalls) {
-      return await handleToolCalls(
-        parsed.functionCalls,
-        conversationId,
-        userMessage,
-      );
+      return await handleToolCalls(parsed.functionCalls, conversationId, userMessage, chatId);
     }
   } catch {
     if (
@@ -964,6 +927,7 @@ async function handleToolCalls(
   toolCalls: any[],
   conversationId: string,
   userMessage: string,
+  chatId?: number,
 ): Promise<string> {
   const responses: string[] = [];
 
@@ -1087,6 +1051,7 @@ async function handleToolCalls(
           break;
         case "saveMemory":
           result = await tools.saveMemory({
+            chatId: chatId || 0,
             key: args.key,
             value: args.value,
             importance: args.importance,

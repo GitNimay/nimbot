@@ -1,8 +1,8 @@
 import { db } from './db';
 import { agentMemory } from './schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
-export async function getAllMemory(): Promise<{ key: string; value: string; importance: string }[]> {
+export async function getAllMemory(chatId: number): Promise<{ key: string; value: string; importance: string }[]> {
   const memories = await db
     .select({
       key: agentMemory.memoryKey,
@@ -10,6 +10,7 @@ export async function getAllMemory(): Promise<{ key: string; value: string; impo
       importance: agentMemory.importance,
     })
     .from(agentMemory)
+    .where(eq(agentMemory.chatId, chatId))
     .orderBy(agentMemory.importance);
   
   return memories.map(m => ({
@@ -19,26 +20,27 @@ export async function getAllMemory(): Promise<{ key: string; value: string; impo
   }));
 }
 
-export async function getMemory(key: string): Promise<string | null> {
+export async function getMemory(chatId: number, key: string): Promise<string | null> {
   const result = await db
     .select({ value: agentMemory.value })
     .from(agentMemory)
-    .where(eq(agentMemory.memoryKey, key))
+    .where(and(eq(agentMemory.chatId, chatId), eq(agentMemory.memoryKey, key)))
     .limit(1);
   
   return result.length > 0 ? result[0].value : null;
 }
 
-export async function setMemory(key: string, value: string, importance: 'low' | 'medium' | 'high' = 'medium'): Promise<void> {
+export async function setMemory(chatId: number, key: string, value: string, importance: 'low' | 'medium' | 'high' = 'medium'): Promise<void> {
   await db
     .insert(agentMemory)
     .values({
+      chatId,
       memoryKey: key,
       value,
       importance,
     })
     .onConflictDoUpdate({
-      target: agentMemory.memoryKey,
+      target: [agentMemory.chatId, agentMemory.memoryKey],
       set: {
         value,
         importance,
@@ -47,22 +49,22 @@ export async function setMemory(key: string, value: string, importance: 'low' | 
     });
 }
 
-export async function deleteMemory(key: string): Promise<void> {
+export async function deleteMemory(chatId: number, key: string): Promise<void> {
   await db
     .delete(agentMemory)
-    .where(eq(agentMemory.memoryKey, key));
+    .where(and(eq(agentMemory.chatId, chatId), eq(agentMemory.memoryKey, key)));
 }
 
-export async function clearAllMemory(): Promise<void> {
-  await db.delete(agentMemory);
+export async function clearAllMemory(chatId: number): Promise<void> {
+  await db.delete(agentMemory).where(eq(agentMemory.chatId, chatId));
 }
 
 export function formatMemoryForPrompt(): string {
   return '';
 }
 
-export async function getFormattedMemory(): Promise<string> {
-  const memories = await getAllMemory();
+export async function getFormattedMemory(chatId: number): Promise<string> {
+  const memories = await getAllMemory(chatId);
   
   if (memories.length === 0) {
     return '';

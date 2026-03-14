@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, pgEnum, bigint } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, timestamp, boolean, integer, pgEnum, bigint, unique } from 'drizzle-orm/pg-core';
 
 export const roleEnum = pgEnum('role', ['user', 'assistant', 'system']);
 export const taskStatusEnum = pgEnum('task_status', ['pending', 'in_progress', 'completed', 'cancelled']);
@@ -70,12 +70,15 @@ export const taskReminders = pgTable('task_reminders', {
 
 export const agentMemory = pgTable('agent_memory', {
   id: uuid('id').defaultRandom().primaryKey(),
-  memoryKey: varchar('key', { length: 255 }).notNull().unique(),
+  chatId: bigint('chat_id', { mode: 'number' }).notNull(),
+  memoryKey: varchar('key', { length: 255 }).notNull(),
   value: text('value').notNull(),
   importance: varchar('importance', { length: 50 }).default('medium'),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).defaultNow(),
-});
+}, (t) => ({
+  unq: unique('agent_memory_chat_key_unique').on(t.chatId, t.memoryKey),
+}));
 
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
