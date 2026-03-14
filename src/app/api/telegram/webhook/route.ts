@@ -5,6 +5,9 @@ import { processWithAI, simpleAIResponse } from '@/lib/ai-agent';
 import { getTodaysTasks, getPendingTasks } from '@/lib/tasks';
 import { getTodaysSchedules } from '@/lib/schedules';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
   try {
     const secret = req.headers.get('x-telegram-bot-api-secret-token');

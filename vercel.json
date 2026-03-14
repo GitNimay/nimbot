@@ -1,19 +1,24 @@
 {
   "framework": "nextjs",
-  "routes": [
+  "crons": [],
+  "headers": [
     {
-      "src": "/api/telegram/webhook",
-      "headers": {
-        "Access-Control-Allow-Origin": "*"
-      },
-      "continue": true
+      "source": "/api/telegram/webhook",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
     },
     {
-      "src": "/api/cron/(.*)",
-      "headers": {
-        "Access-Control-Allow-Origin": "*"
-      },
-      "continue": true
+      "source": "/api/cron/:path*",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
     }
   ]
 }
