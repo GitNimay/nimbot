@@ -29,7 +29,7 @@ const MODEL_CONFIG = {
   openrouter4: 'mistralai/mistral-7b-instruct-v0.2',
   openrouter5: 'meta-llama/llama-3.2-3b-instruct',
   gemini: 'gemini-2.5-flash',
-  groq: 'llama-3.2-90b-versatile',
+  groq: 'qwen/qwen-2.5-32b-instruct',
   groq2: 'llama-3.3-70b-versatile',
   groq3: 'llama-3.1-70b-versatile',
   groq4: 'mixtral-8x7b-32768',
