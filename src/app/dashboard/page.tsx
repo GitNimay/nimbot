@@ -243,15 +243,24 @@ export default function Dashboard() {
               </div>
             )}
             
-            {groupedTasks && Object.entries(groupedTasks).map(([date, dateTasks]) => (
+            {groupedTasks && Object.entries(groupedTasks).sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime()).map(([date, dateTasks]) => (
               <div key={date} className="date-group">
                 <div className="date-header" onClick={() => toggleDate(date)}>
                   <span className="date-label">
-                    {new Date(date).toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
+                    {(() => {
+                      try {
+                        const parsed = new Date(date);
+                        if (isNaN(parsed.getTime())) return date;
+                        return parsed.toLocaleDateString('en-US', { 
+                          weekday: 'long', 
+                          month: 'long', 
+                          day: 'numeric',
+                          year: 'numeric'
+                        });
+                      } catch {
+                        return date;
+                      }
+                    })()}
                   </span>
                   <span className="date-count">{dateTasks.filter(t => t.status === 'pending').length} pending</span>
                   <span className="expand-icon">{expandedDates.has(date) ? '▼' : '▶'}</span>
@@ -328,7 +337,7 @@ export default function Dashboard() {
                   <p>No chat sessions yet. Start chatting with your bot!</p>
                 </div>
               ) : (
-                conversations?.map(conv => (
+                conversations?.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(conv => (
                   <div 
                     key={conv.id} 
                     className="item clickable"
